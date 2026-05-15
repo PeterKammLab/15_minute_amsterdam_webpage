@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>15-Minute Amsterdam</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Inter, Helvetica, Arial, sans-serif;
+      background: #f6f5f2;
+      color: #111;
+      overflow-x: hidden;
+    }
+
+    /* FULLSCREEN VIDEO INTRO */
+    .hero-video {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #000;
+    }
+
+    .hero-video video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .hero-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6vw;
+      background: linear-gradient(
+        rgba(0, 0, 0, 0.08),
+        rgba(0, 0, 0, 0.38)
+      );
+      color: white;
+      text-align: center;
+    }
+
+    .hero-text {
+      max-width: 980px;
+      animation: fadeUp 1.2s ease both;
+      transition: opacity 300ms ease, transform 300ms ease;
+    }
+
+    .hero-text.video-playing .hero-kicker,
+    .hero-text.video-playing .hero-title,
+    .hero-text.video-playing .hero-subtitle {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .hero-kicker {
+      font-size: clamp(0.8rem, 1.2vw, 1.1rem);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+      opacity: 0.85;
+    }
+
+    .hero-title {
+      font-size: clamp(3rem, 8vw, 8rem);
+      line-height: 0.92;
+      font-weight: 900;
+      letter-spacing: -0.06em;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-subtitle {
+      font-size: clamp(1.05rem, 2vw, 1.7rem);
+      line-height: 1.45;
+      max-width: 760px;
+      margin: 0 auto;
+      opacity: 0.92;
+    }
+
+    .scroll-hint {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.78rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      opacity: 0.75;
+    }
+
+    .play-button {
+      margin-top: 2rem;
+      padding: 0.9rem 1.4rem;
+      border: 1px solid rgba(255,255,255,0.7);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: transform 180ms ease, background 180ms ease;
+    }
+
+    .play-button.is-playing {
+      display: none;
+    }
+
+    .hero-controls {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      z-index: 99999;
+      display: none;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .hero-controls.visible {
+      display: flex;
+    }
+
+    .playing-pill,
+    .mute-button {
+      padding: 0.75rem 1.1rem;
+      border: 1px solid rgba(255,255,255,0.55);
+      border-radius: 999px;
+      background: rgba(0,0,0,0.72);
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 12px 36px rgba(0,0,0,0.35);
+    }
+
+    .mute-button {
+      cursor: pointer;
+    }
+
+    .play-button:hover {
+      transform: scale(1.05);
+      background: rgba(255,255,255,0.22);
+    }
+
+    /* SLIDE STORY SECTION */
+    .slide-section {
+      min-height: 100vh;
+      padding: 4vh 4vw 6vh;
+      background: #f6f5f2;
+    }
+
+    .section-header {
+      max-width: 1120px;
+      margin: 0 auto 2.8rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 1rem;
+    }
+
+    .section-header h2 {
+      font-size: clamp(1.8rem, 3.4vw, 3.8rem);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+      font-weight: 900;
+    }
+
+    .section-header p {
+      max-width: 360px;
+      font-size: 1rem;
+      line-height: 1.4;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .slider-shell {
+      max-width: 1120px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .slide-window {
+      overflow: hidden;
+      border-radius: 22px;
+      box-shadow: 0 28px 72px rgba(0, 0, 0, 0.16);
+      background: transparent;
+      width: min(82vw, 1120px);
+      margin: 0 auto;
+    }
+
+    .slide-track {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+    }
+
+    .slide-card {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transform: translateX(80px) rotate(1.5deg) scale(0.94);
+      pointer-events: none;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 24px;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.12);
+      transition:
+        opacity 520ms ease,
+        transform 680ms cubic-bezier(0.16, 1, 0.3, 1),
+        filter 520ms ease;
+      filter: blur(6px);
+    }
+
+    .slide-card.active {
+      opacity: 1;
+      transform: translateX(0) rotate(0deg) scale(1);
+      pointer-events: auto;
+      filter: blur(0);
+      animation: popCanvas 680ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .slide-card.exit-left {
+      opacity: 0;
+      transform: translateX(-90px) rotate(-1.5deg) scale(0.94);
+      filter: blur(6px);
+    }
+
+    .slide-card.exit-right {
+      opacity: 0;
+      transform: translateX(90px) rotate(1.5deg) scale(0.94);
+      filter: blur(6px);
+    }
+
+    @keyframes popCanvas {
+      0% {
+        opacity: 0;
+        transform: translateX(90px) rotate(2deg) scale(0.92);
+        filter: blur(8px);
+      }
+      65% {
+        opacity: 1;
+        transform: translateX(-8px) rotate(-0.3deg) scale(1.015);
+        filter: blur(0);
+      }
+      100% {
+        opacity: 1;
+        transform: translateX(0) rotate(0deg) scale(1);
+        filter: blur(0);
+      }
+    }
+
+    .slide-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      background: white;
+    }
+
+    .result-interactive {
+      position: static;
+      opacity: 1;
+      transform: none;
+      pointer-events: auto;
+      filter: none;
+      width: 100%;
+      height: 100%;
+      padding: 2rem;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.2rem;
+      background: #fff;
+    }
+
+    .speed-card {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 18px;
+      background: #f8f8f8;
+      cursor: pointer;
+      aspect-ratio: 4 / 3;
+      min-height: 420px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+      perspective: 800px;
+      transform-style: preserve-3d;
+    }
+
+    .speed-card::after {
+      content: "Click to reveal";
+      position: absolute;
+      left: 50%;
+      bottom: 1.2rem;
+      transform: translateX(-50%);
+      color: #777;
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      z-index: 3;
+      transition: opacity 260ms ease;
+    }
+
+    .speed-card.revealed::after {
+      opacity: 0;
+    }
+
+    .speed-label {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: #fff;
+      color: #222;
+      font-size: clamp(1rem, 2vw, 1.8rem);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: -0.04em;
+      z-index: 2;
+      transition: opacity 420ms ease, transform 520ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .speed-card.revealed .speed-label {
+      opacity: 0;
+      transform: rotateY(70deg) scale(0.985);
+      pointer-events: none;
+    }
+
+    .speed-map {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      opacity: 0;
+      transform: rotateY(-70deg) scale(0.985);
+      transition: opacity 320ms ease, transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+      background-color: #fff;
+    }
+
+    .speed-card.revealed .speed-map {
+      opacity: 1;
+      transform: rotateY(0deg) scale(1);
+    }
+
+    .speed-map.walking-slow {
+      background-image: url('images/slide-13-1.png');
+    }
+
+    .speed-map.walking {
+      background-image: url('images/slide-13-2.png');
+    }
+
+    .speed-map.cycling-slow {
+      background-image: url('images/slide-13-3.png');
+    }
+
+    .speed-map.cycling {
+      background-image: url('images/slide-13-4.png');
+    }
+
+    .results-layout {
+      width: min(96vw, 1700px);
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4rem;
+    }
+
+    .results-image {
+      width: 100%;
+      display: block;
+      background: transparent;
+      box-shadow: none;
+      border-radius: 0;
+    }
+
+    .results-subtitle {
+      font-size: clamp(1.1rem, 2vw, 1.8rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin: 1rem 0 -2rem;
+      color: #111;
+    }
+
+    .population-wrapper {
+      position: relative;
+      width: 100%;
+    }
+
+    .population-hotspots {
+      position: absolute;
+      top: 4%;
+      right: 2%;
+      width: 38%;
+      height: 40%;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      z-index: 10;
+    }
+
+    .population-hotspots.preview-open .pop-button {
+      display: none;
+    }
+
+    .population-preview {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.96);
+      border-radius: 18px;
+      box-shadow: 0 16px 42px rgba(0,0,0,0.14);
+      overflow: hidden;
+      z-index: 20;
+    }
+
+    .population-hotspots.preview-open .population-preview {
+      display: block;
+    }
+
+    .population-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      background: white;
+    }
+
+    .population-back {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      border: none;
+      background: #BF1421;
+      color: #fff;
+      cursor: pointer;
+      z-index: 21;
+      font-weight: 800;
+    }
+
+    .zoom-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .pop-button,
+    .zoom-button {
+      border: none;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #222;
+      transition: transform 220ms ease, background 220ms ease;
+    }
+
+    .zoom-button {
+      min-height: 110px;
+      padding: 1.2rem;
+      text-align: left;
+      line-height: 1.25;
+    }
+
+    .pop-button:hover,
+    .zoom-button:hover {
+      transform: scale(1.04);
+      background: #fff;
+    }
+
+    .pop-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.68);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999999;
+      padding: 3vw;
+    }
+
+    .pop-overlay.visible {
+      display: flex;
+    }
+
+    .pop-overlay img {
+      max-width: 92vw;
+      max-height: 92vh;
+      border-radius: 18px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.4);
+      background: white;
+    }
+
+    .close-pop {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 52px;
+      height: 52px;
+      border-radius: 999px;
+      border: none;
+      background: #BF1421;
+      color: white;
+      font-size: 1.4rem;
+      cursor: pointer;
+    }
+
+    .results-interactive-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2rem;
+      width: 100%;
+    }
+
+    .nav-button {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 56px;
+      height: 56px;
+      border-radius: 999px;
+      border: none;
+      background: rgba(17, 17, 17, 0.92);
+      color: white;
+      font-size: 2rem;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.25);
+      transition: transform 180ms ease, opacity 180ms ease;
+      z-index: 5;
+    }
+
+    .nav-button:hover {
+      transform: translateY(-50%) scale(1.06);
+    }
+
+    .nav-button.prev,
+    .nav-button.prev-method,
+    .nav-button.prev-results {
+      left: -28px;
+    }
+
+    .nav-button.next,
+    .nav-button.next-method,
+    .nav-button.next-results {
+      right: -28px;
+    }
+
+    .dots {
+      display: flex;
+      justify-content: center;
+      gap: 0.6rem;
+      margin-top: 1.6rem;
+    }
+
+    .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 999px;
+      border: none;
+      background: #c9c9c9;
+      cursor: pointer;
+      transition: width 220ms ease, background 220ms ease;
+    }
+
+    .dot.active {
+      width: 34px;
+      background: #BF1421;
+    }
+
+    .section-jump-arrow {
+      position: absolute;
+      top: 50%;
+      right: -28px;
+      transform: translateY(-50%) scale(0.96);
+      width: 74px;
+      height: 74px;
+      border-radius: 999px;
+      border: none;
+      background: #BF1421;
+      color: #fff;
+      font-size: 3rem;
+      font-weight: 900;
+      cursor: pointer;
+      display: none;
+      place-items: center;
+      box-shadow: 0 20px 52px rgba(191, 20, 33, 0.34);
+      z-index: 20;
+      transition: transform 220ms ease, box-shadow 220ms ease, opacity 220ms ease;
+    }
+
+    .section-jump-arrow.visible {
+      display: grid;
+      animation: softArrow 2.4s ease-in-out infinite;
+    }
+
+    .section-jump-arrow:hover {
+      transform: translateY(-50%) scale(1.04);
+      box-shadow: 0 26px 68px rgba(191, 20, 33, 0.46);
+    }
+
+    .nav-button.hidden-arrow {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .method-section-hidden {
+      display: none;
+    }
+
+    .method-section-visible {
+      display: block;
+      animation: fadeUp 600ms ease both;
+    }
+
+    @keyframes softArrow {
+      0%, 100% {
+        transform: translateY(-50%) scale(0.96);
+        opacity: 0.88;
+      }
+      50% {
+        transform: translateY(-50%) scale(1.01);
+        opacity: 1;
+      }
+    }
+
+    .slide-caption {
+      max-width: 1400px;
+      margin: 1.2rem auto 0;
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      color: #444;
+      font-size: 0.95rem;
+    }
+
+    .slide-counter {
+      font-weight: 800;
+      color: #ce1624;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(24px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 760px) {
+      .section-header {
+        display: block;
+      }
+
+      .section-header p {
+        margin-top: 1rem;
+      }
+
+      .slide-section {
+        padding-inline: 1rem;
+      }
+
+      .nav-button {
+        width: 44px;
+        height: 44px;
+        font-size: 1.5rem;
+      }
+
+      .nav-button.prev,
+      .nav-button.prev-method,
+      .nav-button.prev-results {
+        left: 10px;
+      }
+
+      .nav-button.next,
+      .nav-button.next-method,
+      .nav-button.next-results {
+        right: 10px;
+      }
+
+      .slide-window {
+        border-radius: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <!-- VIDEO GOES HERE: put your MP4 in videos/15-minute-amsterdam.mp4 -->
+    <section class="hero-video">
+      <video id="introVideo" muted playsinline poster="images/slide-00.png">
+        <source src="videos/15-minute-amsterdam.mp4" type="video/mp4" />
+      </video>
+
+      <div class="hero-controls" id="heroControls">
+        <div class="playing-pill">Playing...</div>
+        <button class="mute-button" id="muteToggle">Mute</button>
+      </div>
+
+      <div class="hero-overlay">
+        <div class="hero-text">
+          <div class="hero-kicker">Case study</div>
+          <h1 class="hero-title">15-Minute Amsterdam</h1>
+          <p class="hero-subtitle">
+            Press play to enter the story.
+          </p>
+          <button class="play-button" id="playStory">Play video</button>
+        </div>
+        <div class="scroll-hint">Scroll to explore</div>
+      </div>
+    </section>
+
+    <section class="slide-section" id="slides">
+      <div class="section-header compact">
+        <h2>Case study</h2>
+        <p>Scroll through the slides</p>
+      </div>
+
+      <div class="slider-shell">
+        <button class="nav-button prev" aria-label="Previous slide">‹</button>
+
+        <div class="slide-window">
+          <!-- SLIDES GO HERE: put images in images/slide-03.png, slide-04.png, slide-05.png -->
+          <div class="slide-track case-track">
+            <article class="slide-card case-slide">
+              <img src="images/slide-03.png" alt="Amsterdam location map slide" />
+            </article>
+            <article class="slide-card case-slide">
+              <img src="images/slide-04.png" alt="Amsterdam key facts slide" />
+            </article>
+            <article class="slide-card case-slide">
+              <img src="images/slide-05.png" alt="Amsterdam traffic network slide" />
+            </article>
+          </div>
+        </div>
+
+        <button class="nav-button next" aria-label="Next slide">›</button>
+        <button class="section-jump-arrow" id="goToMethods" aria-label="Go to method section">›</button>
+      </div>
+
+      <div class="dots" aria-label="Slide navigation"></div>
+
+      </section>
+
+      <section class="slide-section method-section-hidden" id="methods">
+        <div class="section-header compact">
+          <h2>Method</h2>
+          <p>Scroll through the process</p>
+        </div>
+
+        <div class="slider-shell">
+          <button class="nav-button prev-method" aria-label="Previous slide">‹</button>
+
+          <div class="slide-window">
+            <div class="slide-track method-track">
+
+              <article class="slide-card method-slide">
+                <img src="images/slide-06.png" alt="Amenities" />
+              </article>
+
+              <article class="slide-card method-slide">
+                <img src="images/slide-07.png" alt="Spatial Zones" />
+              </article>
+
+              <article class="slide-card method-slide">
+                <img src="images/slide-08.png" alt="Sociodemographic Data" />
+              </article>
+
+              <article class="slide-card method-slide">
+                <img src="images/slide-09.png" alt="Travel Speeds" />
+              </article>
+
+              <article class="slide-card method-slide">
+                <img src="images/slide-10.png" alt="FMC Index" />
+              </article>
+
+              <article class="slide-card method-slide">
+                <img src="images/slide-11.png" alt="Isochrones" />
+              </article>
+
+            </div>
+          </div>
+
+          <button class="nav-button next-method" aria-label="Next slide">›</button>
+          <button class="section-jump-arrow" id="goToResults" aria-label="Go to results section">›</button>
+        </div>
+
+        <div class="dots method-dots"></div>
+      </section>
+
+      <section class="slide-section method-section-hidden" id="results">
+        <div class="section-header compact">
+          <h2>Results</h2>
+          <p>Dominant accessibility patterns</p>
+        </div>
+
+        <div class="results-layout">
+
+          <img class="results-image" src="images/slide-12.png" alt="FMC Results Map" />
+
+          <h3 class="results-subtitle">Travel speeds</h3>
+
+          <div class="results-interactive-grid">
+            <div class="speed-card">
+              <div class="speed-label">Walking Slow</div>
+              <div class="speed-map walking-slow"></div>
+            </div>
+
+            <div class="speed-card">
+              <div class="speed-label">Walking</div>
+              <div class="speed-map walking"></div>
+            </div>
+
+            <div class="speed-card">
+              <div class="speed-label">Cycling Slow</div>
+              <div class="speed-map cycling-slow"></div>
+            </div>
+
+            <div class="speed-card">
+              <div class="speed-label">Cycling</div>
+              <div class="speed-map cycling"></div>
+            </div>
+          </div>
+
+          <h3 class="results-subtitle">Population groups</h3>
+
+          <div class="population-wrapper">
+            <img class="results-image" src="images/slide-14.png" alt="Population density and FMC index correlation" />
+
+            <div class="population-hotspots">
+              <button class="pop-button" data-pop="images/slide-pop-01.png">Children</button>
+              <button class="pop-button" data-pop="images/slide-pop02.png">Migration</button>
+              <button class="pop-button" data-pop="images/slide-pop-03.png">Older adults</button>
+              <button class="pop-button" data-pop="images/slide-pop-04.png">WOZ</button>
+
+              <div class="population-preview" id="populationPreview">
+                <button class="population-back" id="populationBack">✕</button>
+                <img id="populationPreviewImage" src="" alt="Population group detail" />
+              </div>
+            </div>
+          </div>
+          
+
+          <h3 class="results-subtitle">Overall scores</h3>
+          <img class="results-image" src="images/slide-16.png" alt="Overall FMC index scores" />
+
+          <h3 class="results-subtitle">Zoom-ins</h3>
+          <div class="zoom-grid">
+            <button class="zoom-button" data-pop="images/slide-zoom-01.png">Areas with Very High FMC Index</button>
+            <button class="zoom-button" data-pop="images/slide-zoom-02.png">Areas with Very Low FMC Index</button>
+            <button class="zoom-button" data-pop="images/slide-zoom-03.png">Older Adults and Slow Speed Factor</button>
+            <button class="zoom-button" data-pop="images/slide-zoom-04.png">Schools Accessibility and Young Population</button>
+          </div>
+
+        </div>
+      </section>
+
+    <section class="slide-section" id="credits" style="padding-top:16vh; padding-bottom:0.4vh;">
+      <div class="results-layout" style="max-width:980px; gap:1.2rem; margin:0 auto; text-align:left; padding-top:2rem;">
+        <div style="border-top:1px solid #111; padding-top:1.6rem;">
+
+          <div style="display:flex; flex-direction:column; gap:0.08rem; margin-bottom:0.9rem; font-size:1.08rem; line-height:1.1; max-width:420px;">
+            <div>
+              Research, Webpage - 
+              <a href="https://www.tudelft.nl/staff/p.koljensic/" target="_blank" style="color:#111; text-decoration:none; font-weight:800;">Petar Koljenšić</a>
+            </div>
+
+            <div>
+              Research - <span style="font-weight:800;">Thomas Verbeek</span>
+            </div>
+          </div>
+
+          <div style="max-width:820px; line-height:1.45; color:#333; margin-bottom:0.9rem;">
+            Results, findings, and visualizations are based on the publication:
+          </div>
+
+          <div style="font-size:1.02rem; font-weight:700; line-height:1.4; max-width:820px; margin-bottom:1.1rem;">
+            All-inclusive 15-minute city? A fine-grained analysis of inequalities in spatial accessibility in Amsterdam. Journal of Urban Mobility, 2026.
+          </div>
+
+          <div style="max-width:820px; line-height:1.55; color:#333; margin-bottom:2rem; text-align:justify;">
+            This research was initiated as part of the corresponding author’s Master’s thesis under the supervision of Professor Bardo Hörl of Vienna University of Technology and Professor Haixiao Pan of Tongji University. We thank all colleagues from the Smart Urban Mobility team, led by Tom Kuipers and Maike Simmes, at the AMS Institute for constructive feedback and insightful discussions. We also thank Erik Boertjes and Caspar Egas for their support with software-related tasks during data collection and analysis.
+          </div>
+
+          <div style="display:flex; align-items:center; justify-content:center; gap:4rem; padding-top:0.8rem; padding-bottom:0rem; border-top:1px solid rgba(0,0,0,0.08);">
+            <img src="images/tudelft.png" alt="TU Delft" style="height:70px; object-fit:contain;" />
+            <img src="images/ams-logo.png" alt="AMS Institute" style="height:70px; object-fit:contain;" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="pop-overlay" id="popOverlay">
+    <button class="close-pop" id="closePop">✕</button>
+    <img id="popImage" src="" alt="Population detail" />
+  </div>
+
+  </main>
+
+  <script>
+    const introVideo = document.querySelector('#introVideo');
+    const playStory = document.querySelector('#playStory');
+    const heroText = document.querySelector('.hero-text');
+    const slidesSection = document.querySelector('#slides');
+    const heroControls = document.querySelector('#heroControls');
+    const muteToggle = document.querySelector('#muteToggle');
+
+    playStory.addEventListener('click', async () => {
+      introVideo.currentTime = 0;
+      introVideo.muted = false;
+      await introVideo.play();
+      heroText.classList.add('video-playing');
+      playStory.classList.add('is-playing');
+      heroControls.classList.add('visible');
+      muteToggle.textContent = introVideo.muted ? 'Unmute' : 'Mute';
+    });
+
+    muteToggle.addEventListener('click', () => {
+      introVideo.muted = !introVideo.muted;
+      muteToggle.textContent = introVideo.muted ? 'Unmute' : 'Mute';
+    });
+
+    introVideo.addEventListener('ended', () => {
+      heroText.classList.remove('video-playing');
+      playStory.classList.remove('is-playing');
+      heroControls.classList.remove('visible');
+      playStory.textContent = 'Play video';
+      slidesSection.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    const track = document.querySelector('.slide-track');
+    const slides = Array.from(document.querySelectorAll('.case-slide'));
+    const casePrev = document.querySelector('.prev');
+    const caseNext = document.querySelector('.next');
+    const dotsContainer = document.querySelector('.dots');
+    const goToMethods = document.querySelector('#goToMethods');
+    
+
+    let index = 0;
+
+    slides.forEach((_, i) => {
+      const dot = document.createElement('button');
+      dot.className = 'dot';
+      dot.setAttribute('aria-label', `Go to slide ${i + 1}`);
+      dot.addEventListener('click', () => goToSlide(i));
+      dotsContainer.appendChild(dot);
+    });
+
+    const dots = Array.from(document.querySelectorAll('.dot'));
+
+    function goToSlide(nextIndex) {
+      const oldIndex = index;
+      const direction = nextIndex > index ? 'right' : 'left';
+      index = (nextIndex + slides.length) % slides.length;
+
+      slides.forEach((slide, i) => {
+        slide.classList.remove('active', 'exit-left', 'exit-right');
+
+        if (i === oldIndex && i !== index) {
+          slide.classList.add(direction === 'right' ? 'exit-left' : 'exit-right');
+        }
+
+        if (i === index) {
+          void slide.offsetWidth;
+          slide.classList.add('active');
+        }
+      });
+
+      dots.forEach((dot, i) => dot.classList.toggle('active', i === index));
+      const isLastCaseSlide = index === slides.length - 1;
+      goToMethods.classList.toggle('visible', isLastCaseSlide);
+      caseNext.classList.toggle('hidden-arrow', isLastCaseSlide);
+    }
+
+    casePrev.addEventListener('click', () => goToSlide(index - 1));
+    caseNext.addEventListener('click', () => goToSlide(index + 1));
+
+    goToMethods.addEventListener('click', () => {
+      const methodsSection = document.querySelector('#methods');
+      methodsSection.classList.remove('method-section-hidden');
+      methodsSection.classList.add('method-section-visible');
+      methodsSection.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowLeft') goToSlide(index - 1);
+      if (event.key === 'ArrowRight') goToSlide(index + 1);
+    });
+
+    let startX = 0;
+    track.addEventListener('touchstart', (event) => {
+      startX = event.touches[0].clientX;
+    });
+
+    track.addEventListener('touchend', (event) => {
+      const endX = event.changedTouches[0].clientX;
+      const diff = startX - endX;
+      if (Math.abs(diff) > 50) {
+        diff > 0 ? goToSlide(index + 1) : goToSlide(index - 1);
+      }
+    });
+
+    goToSlide(0);
+
+    const methodSlides = Array.from(document.querySelectorAll('.method-slide'));
+    const methodPrev = document.querySelector('.prev-method');
+    const methodNext = document.querySelector('.next-method');
+    const methodDotsContainer = document.querySelector('.method-dots');
+    const goToResults = document.querySelector('#goToResults');
+
+    let methodIndex = 0;
+
+    methodSlides.forEach((_, i) => {
+      const dot = document.createElement('button');
+      dot.className = 'dot';
+      dot.addEventListener('click', () => goToMethodSlide(i));
+      methodDotsContainer.appendChild(dot);
+    });
+
+    const methodDots = Array.from(
+      document.querySelectorAll('.method-dots .dot')
+    );
+
+    function goToMethodSlide(nextIndex) {
+      const oldIndex = methodIndex;
+      const direction = nextIndex > methodIndex ? 'right' : 'left';
+
+      methodIndex =
+        (nextIndex + methodSlides.length) %
+        methodSlides.length;
+
+      methodSlides.forEach((slide, i) => {
+        slide.classList.remove(
+          'active',
+          'exit-left',
+          'exit-right'
+        );
+
+        if (i === oldIndex && i !== methodIndex) {
+          slide.classList.add(
+            direction === 'right'
+              ? 'exit-left'
+              : 'exit-right'
+          );
+        }
+
+        if (i === methodIndex) {
+          void slide.offsetWidth;
+          slide.classList.add('active');
+        }
+      });
+
+      methodDots.forEach((dot, i) => {
+        dot.classList.toggle('active', i === methodIndex);
+      });
+
+      const isLastMethodSlide = methodIndex === methodSlides.length - 1;
+      goToResults.classList.toggle('visible', isLastMethodSlide);
+      methodNext.classList.toggle('hidden-arrow', isLastMethodSlide);
+    }
+
+    methodPrev.addEventListener('click', () => {
+      goToMethodSlide(methodIndex - 1);
+    });
+
+    methodNext.addEventListener('click', () => {
+      goToMethodSlide(methodIndex + 1);
+    });
+
+    goToResults.addEventListener('click', () => {
+      const resultsSection = document.querySelector('#results');
+      resultsSection.classList.remove('method-section-hidden');
+      resultsSection.classList.add('method-section-visible');
+      resultsSection.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    goToMethodSlide(0);
+
+    document.querySelectorAll('.speed-card').forEach((card) => {
+      card.addEventListener('click', () => {
+        card.classList.toggle('revealed');
+      });
+    });
+
+    const popOverlay = document.querySelector('#popOverlay');
+    const popImage = document.querySelector('#popImage');
+    const closePop = document.querySelector('#closePop');
+
+    const populationHotspots = document.querySelector('.population-hotspots');
+    const populationPreviewImage = document.querySelector('#populationPreviewImage');
+    const populationBack = document.querySelector('#populationBack');
+
+    document.querySelectorAll('.pop-button').forEach((button) => {
+      button.addEventListener('click', () => {
+        populationPreviewImage.src = button.dataset.pop;
+        populationHotspots.classList.add('preview-open');
+      });
+    });
+
+    populationBack.addEventListener('click', () => {
+      populationHotspots.classList.remove('preview-open');
+      populationPreviewImage.src = '';
+    });
+
+    document.querySelectorAll('.zoom-button').forEach((button) => {
+      button.addEventListener('click', () => {
+        popImage.src = button.dataset.pop;
+        popOverlay.classList.add('visible');
+      });
+    });
+
+    closePop.addEventListener('click', () => {
+      popOverlay.classList.remove('visible');
+    });
+
+    popOverlay.addEventListener('click', (e) => {
+      if (e.target === popOverlay) {
+        popOverlay.classList.remove('visible');
+      }
+    });
+
+  </script>
+</body>
+</html>
