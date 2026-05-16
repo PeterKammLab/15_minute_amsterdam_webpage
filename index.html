@@ -35,6 +35,35 @@
       object-fit: cover;
     }
 
+    .mobile-rotate {
+      display: none;
+      position: absolute;
+      left: 50%;
+      top: 68%;
+      transform: translateX(-50%);
+      z-index: 30;
+      text-align: center;
+    }
+
+    .mobile-rotate img {
+      width: 90px;
+      opacity: 0.9;
+    }
+
+    .mobile-rotate p {
+      margin-top: 0.5rem;
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.75);
+    }
+
+    @media (max-width: 900px) and (orientation: portrait) {
+      .mobile-rotate {
+        display: block;
+      }
+    }
+
     .hero-overlay {
       position: absolute;
       inset: 0;
@@ -723,6 +752,11 @@
       <div class="hero-controls" id="heroControls">
         <div class="playing-pill">Playing...</div>
         <button class="mute-button" id="muteToggle">Mute</button>
+      </div>
+
+      <div class="mobile-rotate">
+        <img src="images/rotate_phone.gif" alt="Rotate phone" />
+        <p>Rotate device</p>
       </div>
 
       <div class="hero-overlay">
